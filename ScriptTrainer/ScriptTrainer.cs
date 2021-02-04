@@ -22,6 +22,7 @@ namespace ScriptTrainer
         public bool DisplayingWindow;
         private bool ShowAddItemwindow = true;
         private bool ShowOtherWindow = false;
+        private bool ShowUnlockResearchWindow = false;
         private int AddItemNum = 1000;
 
         private string searchItem = "";
@@ -30,7 +31,10 @@ namespace ScriptTrainer
         private Rect HeaderTableRect;
         private Rect windowRect;
         private Rect AddItemTableRect;
+        private Rect UnlockResearchTableRect;
+        private GUIStyle ButtonStyle;
         Vector2 scrollPosition;
+        Vector2 scrollPosition2;
 
         // 启动按键
         private ConfigEntry<BepInEx.Configuration.KeyboardShortcut> ShowCounter { get; set; }
@@ -99,7 +103,7 @@ namespace ScriptTrainer
         // 初始样式
         void ComputeRect()
         {
-            int num = Mathf.Min(Screen.width, 700);
+            int num = Mathf.Min(Screen.width, 800);
             int num2 = (Screen.height < 400) ? Screen.height : (400);
             int num3 = Mathf.RoundToInt((float)(Screen.width - num) / 2f);
             int num4 = Mathf.RoundToInt((float)(Screen.height - num2) / 2f);
@@ -110,9 +114,37 @@ namespace ScriptTrainer
             this.HeaderTitleRect.position = Vector2.zero;
             // 选项卡按钮
             //this.HeaderTableRect.width = 150f;
-            this.HeaderTableRect = new Rect(0,40,700,40);
+            this.HeaderTableRect = new Rect(0,40, 800, 40);
             // 添加物品样式
-            this.AddItemTableRect = new Rect(0, 90, 700, 300);
+            this.AddItemTableRect = new Rect(0, 90, 800, 300);
+            // 解锁公式
+            this.UnlockResearchTableRect = new Rect(0, 90, 800, 300);
+
+            // 按钮样式
+            Texture2D texture2D = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            texture2D.SetPixel(0, 0, new Color32(30, 144, 255, 255));    // rgba(30, 144, 255,1.0)
+            texture2D.Apply();
+            Texture2D texture2D2 = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            texture2D2.SetPixel(0, 0, new Color32(112, 161, 255, 255));  // rgba(112, 161, 255,1.0)
+            texture2D2.Apply();
+            ButtonStyle = new GUIStyle
+            {
+                normal = new GUIStyleState  // 正常样式
+                {
+                    textColor = Color.white,
+                    background = texture2D
+                },
+                active = new GUIStyleState  // 点击样式
+                {
+                    textColor = Color.white,
+                    background = texture2D2
+                },
+                wordWrap = true,
+                alignment = TextAnchor.MiddleCenter,
+                fixedHeight = 40,
+                fixedWidth = 90,
+                margin = new RectOffset(5, 7, 0, 5),
+            };
         }
         // 头部标题
         void HeaderTitle(Rect HeaderTitleRect)
@@ -183,15 +215,19 @@ namespace ScriptTrainer
                     {
                         this.ShowAddItemwindow = true;
                         this.ShowOtherWindow = false;
+                        this.ShowUnlockResearchWindow = false;
                     }
-                    if (GUILayout.Button("获取沙土", guistyle))
+                    if (GUILayout.Button("解锁公式", guistyle))
                     {
-                        GameMain.mainPlayer.SetSandCount(GameMain.mainPlayer.sandCount + AddItemNum);
+                        this.ShowUnlockResearchWindow = true;
+                        this.ShowAddItemwindow = false;
+                        this.ShowOtherWindow = false;
                     }
                     if (GUILayout.Button("其他", guistyle))
                     {
                         this.ShowOtherWindow = true;
                         this.ShowAddItemwindow = false;
+                        this.ShowUnlockResearchWindow = false;
                     }
 
                     // 用户自定义获取数量
@@ -265,7 +301,6 @@ namespace ScriptTrainer
         // 添加物品
         void AddItemTable(Rect AddItemTableRect)
         {
-
             if (GameMain.mainPlayer == null)
             {
                 GUILayout.Label("请先进入游戏",new GUIStyle {
@@ -277,47 +312,19 @@ namespace ScriptTrainer
                 return;
             }
 
-
-            Texture2D texture2D = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-            texture2D.SetPixel(0, 0, new Color32(30, 144, 255, 255));    // rgba(30, 144, 255,1.0)
-            texture2D.Apply();
-            Texture2D texture2D2 = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-            texture2D2.SetPixel(0, 0, new Color32(112, 161, 255, 255));  // rgba(112, 161, 255,1.0)
-            texture2D2.Apply();
-
             // 按钮样式
-            GUIStyle guistyle = new GUIStyle
-            {
-                normal = new GUIStyleState  // 正常样式
-                {
-                    textColor = Color.white,
-                    background = texture2D
-                },
-                active = new GUIStyleState  // 点击样式
-                {
-                    textColor = Color.white,
-                    background = texture2D2
-                },
-                wordWrap = true,
-                alignment = TextAnchor.MiddleCenter,
-                fixedHeight = 40,
-                fixedWidth = 90,
-                margin = new RectOffset(5, 7, 0, 5),
-            };            
+            GUIStyle guistyle = ButtonStyle;
             ItemProto[] dataArray = LDB.items.dataArray;
-
-            RecipeProto[] dataArray2 = LDB.recipes.dataArray;
-
+                       
             GUILayout.BeginArea(AddItemTableRect);
             {
                
-                scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, false, GUILayout.Width(700), GUILayout.Height(300));
+                scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, false, GUILayout.Width(800), GUILayout.Height(300));
                 {
                     GUILayout.BeginHorizontal(new GUIStyle { alignment = TextAnchor.UpperLeft });                                       
                     for (int i = 0; i < dataArray.Length; i++)
                     {
                         var item = dataArray[i];
-
                         if (searchItem == "")
                         {
                             // 普通模式
@@ -348,7 +355,7 @@ namespace ScriptTrainer
                             }
                         }
 
-                        int listNum = 7;
+                        int listNum = 8;
                         if ((i + 1) % listNum == 0)
                         {
                             GUILayout.EndHorizontal();
@@ -369,6 +376,69 @@ namespace ScriptTrainer
             }
             GUILayout.EndArea();
         }
+
+        // 解锁研究
+        void UnlockResearchTable(Rect UnlockResearchTableRect)
+        {
+            if (GameMain.mainPlayer == null)
+            {
+                GUILayout.Label("请先进入游戏", new GUIStyle
+                {
+                    fontSize = 26,
+                    fixedWidth = 700,
+                    fixedHeight = 300,
+                    alignment = TextAnchor.MiddleCenter
+                });
+                return;
+            }
+            
+            GUIStyle guistyle = ButtonStyle;                    // 按钮样式
+            RecipeProto[] dataArray = LDB.recipes.dataArray;    //研究列表
+
+            GUILayout.BeginArea(UnlockResearchTableRect);
+            {
+                scrollPosition2 = GUILayout.BeginScrollView(scrollPosition2, false, false, GUILayout.Width(800), GUILayout.Height(300));
+                {
+                    GUILayout.BeginHorizontal(new GUIStyle { alignment = TextAnchor.UpperLeft });
+                    {
+                        for (int i = 0; i < dataArray.Length; i++)
+                        {
+                            var item = dataArray[i];
+                            if (searchItem == "")
+                            {
+                                // 普通模式
+                                if (GUILayout.Button(item.name, guistyle))
+                                {
+                                    GameMain.history.UnlockRecipe(item.ID);
+                                }
+                            }
+                            else
+                            {
+                                // 如果用户输入搜索
+                                if (item.name.Contains(searchItem))
+                                {
+                                    if (GUILayout.Button(item.name, guistyle))
+                                    {
+                                        GameMain.history.UnlockRecipe(item.ID);
+                                    }
+                                }
+                            }
+
+                            int listNum = 8;
+                            if ((i + 1) % listNum == 0)
+                            {
+                                GUILayout.EndHorizontal();
+                                GUILayout.BeginHorizontal(new GUIStyle { alignment = TextAnchor.UpperLeft });
+                            }
+                        }
+                    }
+                }
+                GUILayout.EndScrollView();
+            }
+            GUILayout.EndArea();
+        }
+
+        // 显示窗口
         void DoMyWindow(int winId)
         {
 
@@ -384,6 +454,12 @@ namespace ScriptTrainer
                 this.AddItemTable(AddItemTableRect);               
             }
 
+            // 解锁研究
+            if (this.ShowUnlockResearchWindow)
+            {
+                GUILayout.Space(5f);
+                this.UnlockResearchTable(UnlockResearchTableRect);
+            }
             
 
             // 其他
