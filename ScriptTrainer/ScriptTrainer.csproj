@@ -67,6 +67,10 @@
       <HintPath>E:\vs\BepInEx\Libs\UnityEngine.CoreModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>..\..\libs\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
       <HintPath>..\..\Libs\UnityEngine.IMGUIModule.dll</HintPath>
       <Private>False</Private>

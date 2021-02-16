@@ -20,8 +20,9 @@ namespace ScriptTrainer
 
 
         public bool DisplayingWindow;
-        private bool ShowAddItemwindow = true;
+        private bool ShowAddItemWindow = true;
         private bool ShowOtherWindow = false;
+        private bool ShowAddlocktechWindow = false;
         private int AddItemNum = 1000;
 
         private string searchItem = "";
@@ -30,7 +31,15 @@ namespace ScriptTrainer
         private Rect HeaderTableRect;
         private Rect windowRect;
         private Rect AddItemTableRect;
-        Vector2 scrollPosition;
+        private Rect AddlocktechRect;
+        private Rect OtherRect;
+        private Vector2 scrollPosition;
+
+        private int select = 0;
+        private int selected = 0;
+        private string[] names = { "one", "two", "three", "four" };
+        private static GUIContent[] myGUIContent = new GUIContent[4];
+        private Texture2D[] myTexture = new Texture2D[4];
 
         // 启动按键
         private ConfigEntry<BepInEx.Configuration.KeyboardShortcut> ShowCounter { get; set; }
@@ -49,6 +58,9 @@ namespace ScriptTrainer
 
             // 日志输出
             Debug.Log("脚本已启动");
+
+            //计算区域
+            this.ComputeRect();
         }
 
         public void Update()
@@ -73,8 +85,7 @@ namespace ScriptTrainer
         {
             if (this.DisplayingWindow)
             {
-                //计算区域
-                this.ComputeRect();
+               
 
                 Texture2D texture2D = new Texture2D(1, 1, TextureFormat.RGBA32, false);
                 // rgba(116, 125, 140,1.0)
@@ -92,13 +103,17 @@ namespace ScriptTrainer
                 };
                 // 定义一个新窗口
                 //windowRect = new Rect(200, 200, 700, 400);
-                windowRect = GUILayout.Window(0, windowRect, DoMyWindow, "", myWindowStyle);
+                windowRect = GUI.Window(0, windowRect, DoMyWindow, "可拖动窗口", myWindowStyle);
+                //windowRect = GUI.Window(0, windowRect, DoMyWindow, "可拖动窗口");
 
             }
+            // 保存修改
+            this.ChangeToGame();
         }
         // 初始样式
         void ComputeRect()
         {
+            // 主窗口居中
             int num = Mathf.Min(Screen.width, 700);
             int num2 = (Screen.height < 400) ? Screen.height : (400);
             int num3 = Mathf.RoundToInt((float)(Screen.width - num) / 2f);
@@ -113,6 +128,10 @@ namespace ScriptTrainer
             this.HeaderTableRect = new Rect(0,40,700,40);
             // 添加物品样式
             this.AddItemTableRect = new Rect(0, 90, 700, 300);
+            // 解锁科技
+            this.AddlocktechRect = new Rect(0, 90, 700, 300);
+            // 其他内容
+            this.OtherRect = new Rect(0, 90, 700, 300);
         }
         // 头部标题
         void HeaderTitle(Rect HeaderTitleRect)
@@ -137,8 +156,9 @@ namespace ScriptTrainer
             GUILayout.BeginHorizontal();
             {
                 GUILayout.BeginArea(HeaderTitleRect);
-                GUILayout.Label("[戴森球计划] 内置修改器 By:小莫", guistyle);               
+                GUILayout.Label("[戴森球计划] 内置修改器 By:小莫", guistyle);                
             }
+            
 
             // 结尾
             GUILayout.EndHorizontal();
@@ -181,17 +201,22 @@ namespace ScriptTrainer
                 {
                     if (GUILayout.Button("获取物品", guistyle))
                     {
-                        this.ShowAddItemwindow = true;
+                        this.ShowAddItemWindow = true;
+                        this.ShowOtherWindow = false;
+                        this.ShowAddlocktechWindow = false;
+                    }
+                    if (GUILayout.Button("解锁科技", guistyle))
+                    {
+                        this.ShowAddlocktechWindow = true;
+                        this.ShowAddItemWindow = false;
                         this.ShowOtherWindow = false;
                     }
-                    if (GUILayout.Button("获取沙土", guistyle))
-                    {
-                        GameMain.mainPlayer.SetSandCount(GameMain.mainPlayer.sandCount + AddItemNum);
-                    }
+
                     if (GUILayout.Button("其他", guistyle))
                     {
                         this.ShowOtherWindow = true;
-                        this.ShowAddItemwindow = false;
+                        this.ShowAddItemWindow = false;
+                        this.ShowAddlocktechWindow = false;
                     }
 
                     // 用户自定义获取数量
@@ -261,7 +286,6 @@ namespace ScriptTrainer
             }            
             GUILayout.EndArea();
         }
-        
         // 添加物品
         void AddItemTable(Rect AddItemTableRect)
         {
@@ -303,11 +327,10 @@ namespace ScriptTrainer
                 fixedHeight = 40,
                 fixedWidth = 90,
                 margin = new RectOffset(5, 7, 0, 5),
-            };            
+            };           
+            
+            // 物品列表
             ItemProto[] dataArray = LDB.items.dataArray;
-
-            RecipeProto[] dataArray2 = LDB.recipes.dataArray;
-
             GUILayout.BeginArea(AddItemTableRect);
             {
                
@@ -369,9 +392,418 @@ namespace ScriptTrainer
             }
             GUILayout.EndArea();
         }
+
+        // 解锁科技
+        void AddlocktechTable(Rect AddlocktechRect)
+        {
+            if (GameMain.mainPlayer == null)
+            {
+                GUILayout.Label("请先进入游戏", new GUIStyle
+                {
+                    fontSize = 26,
+                    fixedWidth = 700,
+                    fixedHeight = 300,
+                    alignment = TextAnchor.MiddleCenter
+                });
+                return;
+            }
+
+
+            Texture2D texture2D = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            texture2D.SetPixel(0, 0, new Color32(30, 144, 255, 255));    // rgba(30, 144, 255,1.0)
+            texture2D.Apply();
+            Texture2D texture2D2 = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            texture2D2.SetPixel(0, 0, new Color32(112, 161, 255, 255));  // rgba(112, 161, 255,1.0)
+            texture2D2.Apply();
+
+            // 按钮样式
+            GUIStyle guistyle = new GUIStyle
+            {
+                normal = new GUIStyleState  // 正常样式
+                {
+                    textColor = Color.white,
+                    background = texture2D
+                },
+                active = new GUIStyleState  // 点击样式
+                {
+                    textColor = Color.white,
+                    background = texture2D2
+                },
+                wordWrap = true,
+                alignment = TextAnchor.MiddleCenter,
+                fixedHeight = 40,
+                fixedWidth = 90,
+                margin = new RectOffset(5, 7, 0, 5),
+            };
+
+            // 科技列表
+            TechProto[] dataArray = LDB.techs.dataArray;
+
+            GUILayout.BeginArea(AddlocktechRect);
+            {
+
+                scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, false, GUILayout.Width(700), GUILayout.Height(300));
+                {
+                    GUILayout.BeginHorizontal(new GUIStyle { alignment = TextAnchor.UpperLeft });
+                    for (int i = 0; i < dataArray.Length; i++)
+                    {
+                        var item = dataArray[i];
+
+                        if (searchItem == "")
+                        {
+                            // 普通模式
+                            if (GUILayout.Button(item.name, guistyle))
+                            {
+                                //int num = AddItemNum;
+                                //int res = GameMain.mainPlayer.package.AddItemStacked(item.ID, num);
+                                //UIItemup.Up(item.ID, num);
+                                // 解锁科技
+                                GameMain.history.UnlockTech(item.ID);
+                            }
+                        }
+                        else
+                        {
+                            // 如果用户输入搜索
+                            if (item.name.Contains(searchItem))
+                            {
+                                if (GUILayout.Button(item.name, guistyle))
+                                {
+                                    //int num = AddItemNum;
+                                    //int res = GameMain.mainPlayer.package.AddItemStacked(item.ID, num);
+                                    //UIItemup.Up(item.ID, num);
+
+                                    // 解锁科技
+                                    GameMain.history.UnlockTech(item.ID);
+                                }
+                            }
+                        }
+
+                        int listNum = 7;
+                        if ((i + 1) % listNum == 0)
+                        {
+                            GUILayout.EndHorizontal();
+                            GUILayout.BeginHorizontal(new GUIStyle { alignment = TextAnchor.UpperLeft });
+                        }
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                GUILayout.EndScrollView();
+            }
+            GUILayout.EndArea();
+        }
+
+
+        // 无人机数量
+        int droneCount = 3;
+        int newDroneCount = 3;
+        // 无人机速度
+        float droneSpeed = 5;
+        float newDroneSpeed = 5;
+        // 跳跃高度
+        float jumpSpeed = 32;
+        float newjumpSpeed = 32;
+        // 机甲移动速度
+        float walkSpeed = 5;
+        float newWalkSpeed = 5;
+        // 挖掘速度倍率
+        float miningSpeed = 1;
+        float newMiningSpeed = 1;
+        // 制作速度
+        float replicateSpeed = 1;
+        float newreplicateSpeed = 1;
+        // 保存修改
+        void ChangeToGame()
+        {
+            // 第一行
+            {
+                if (droneCount != newDroneCount)
+                {
+                    GameMain.mainPlayer.mecha.droneCount = newDroneCount;
+                    Debug.Log("无人机数量修改为" + newDroneCount);
+                    droneCount = newDroneCount;
+                }
+                if (droneSpeed != newDroneSpeed)
+                {
+                    GameMain.mainPlayer.mecha.droneSpeed = newDroneSpeed;
+                    Debug.Log("无人机速度修改为" + newDroneSpeed);
+                    droneSpeed = newDroneSpeed;
+                }
+                if (jumpSpeed != newjumpSpeed)
+                {
+                    GameMain.mainPlayer.mecha.jumpSpeed = newjumpSpeed;
+                    Debug.Log("跳跃高度修改为" + newjumpSpeed);
+                    jumpSpeed = newjumpSpeed;
+                }
+            }
+            // 第二行
+            {
+                if (walkSpeed != newWalkSpeed)
+                {
+                    GameMain.mainPlayer.mecha.walkSpeed = newWalkSpeed;
+                    Debug.Log("航行速度修改为" + newWalkSpeed);
+                    walkSpeed = newWalkSpeed;
+                }
+                if (miningSpeed != newMiningSpeed)
+                {
+                    GameMain.mainPlayer.mecha.miningSpeed = newMiningSpeed;
+                    Debug.Log("挖掘速度倍率修改为" + newMiningSpeed);
+                    miningSpeed = newMiningSpeed;
+                }
+                if (replicateSpeed != newreplicateSpeed)
+                {
+                    GameMain.mainPlayer.mecha.researchPower = newreplicateSpeed;
+                    Debug.Log("制作速度修改为" + newreplicateSpeed);
+                    replicateSpeed = newreplicateSpeed;
+                }
+            }
+            
+        }
+        // 其他
+        void OtherTable(Rect OtherRect)
+        {
+            GUILayout.BeginArea(OtherRect);
+            {
+                scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, false, GUILayout.Width(700), GUILayout.Height(300));
+                {
+                    GUILayout.BeginHorizontal(new GUIStyle { alignment = TextAnchor.UpperLeft });
+                    {
+                        // 无人机数量
+                        {
+                            GUILayout.Label("无人机数量:", new GUIStyle
+                            {
+                                fixedWidth = 80,
+                                fixedHeight = 40,
+                                alignment = TextAnchor.MiddleRight,
+                                normal = new GUIStyleState
+                                {
+                                    textColor = Color.white
+                                }
+                            });
+                            var ItemText = GUILayout.TextField(newDroneCount.ToString(), new GUIStyle
+                            {
+                                fixedWidth = 100,
+                                fixedHeight = 40,
+                                alignment = TextAnchor.MiddleLeft,
+                                margin = new RectOffset(5, 0, 0, 0),
+                                normal = new GUIStyleState
+                                {
+                                    textColor = Color.white
+                                }
+                            });
+                            ItemText = Regex.Replace(ItemText, @"[^0-9.]", "");
+                            try
+                            {
+                                if (ItemText != null && ItemText.Length < 10 && ItemText.Length != 0)
+                                {
+                                    newDroneCount = Int32.Parse(ItemText);
+                                }
+                                else
+                                {
+                                    ItemText = newDroneCount.ToString();
+                                }
+                            }
+                            catch (Exception) { throw; }
+                        }
+                        // 无人机速度
+                        {
+                            GUILayout.Label("无人机速度:", new GUIStyle
+                            {
+                                fixedWidth = 80,
+                                fixedHeight = 40,
+                                alignment = TextAnchor.MiddleRight,
+                                normal = new GUIStyleState
+                                {
+                                    textColor = Color.white
+                                }
+                            });
+                            var ItemText = GUILayout.TextField(newDroneSpeed.ToString(), new GUIStyle
+                            {
+                                fixedWidth = 100,
+                                fixedHeight = 40,
+                                alignment = TextAnchor.MiddleLeft,
+                                margin = new RectOffset(5, 0, 0, 0),
+                                normal = new GUIStyleState
+                                {
+                                    textColor = Color.white
+                                }
+                            });
+                            ItemText = Regex.Replace(ItemText, @"[^0-9.]", "");
+                            try
+                            {
+                                if (ItemText != null && ItemText.Length < 10 && ItemText.Length != 0)
+                                {
+                                    newDroneSpeed = Int32.Parse(ItemText);
+                                }
+                                else
+                                {
+                                    ItemText = newDroneSpeed.ToString();
+                                }
+                            }
+                            catch (Exception) { throw; }
+                        }
+                        // 跳跃高度
+                        {
+                            GUILayout.Label("跳跃高度:", new GUIStyle
+                            {
+                                fixedWidth = 80,
+                                fixedHeight = 40,
+                                alignment = TextAnchor.MiddleRight,
+                                normal = new GUIStyleState
+                                {
+                                    textColor = Color.white
+                                }
+                            });
+                            var ItemText = GUILayout.TextField(newjumpSpeed.ToString(), new GUIStyle
+                            {
+                                fixedWidth = 100,
+                                fixedHeight = 40,
+                                alignment = TextAnchor.MiddleLeft,
+                                margin = new RectOffset(5, 0, 0, 0),
+                                normal = new GUIStyleState
+                                {
+                                    textColor = Color.white
+                                }
+                            });
+                            ItemText = Regex.Replace(ItemText, @"[^0-9.]", "");
+                            try
+                            {
+                                if (ItemText != null && ItemText.Length < 10 && ItemText.Length != 0)
+                                {
+                                    newjumpSpeed = Int32.Parse(ItemText);
+                                }
+                                else
+                                {
+                                    ItemText = newjumpSpeed.ToString();
+                                }
+                            }
+                            catch (Exception) { throw; }
+                        }                                           
+                    }
+                    GUILayout.EndHorizontal();
+                    GUILayout.BeginHorizontal(new GUIStyle { alignment = TextAnchor.UpperLeft });
+                    {
+                        
+                        // 挖掘速度倍率
+                        {
+                            GUILayout.Label("挖掘速度:", new GUIStyle
+                            {
+                                fixedWidth = 80,
+                                fixedHeight = 40,
+                                alignment = TextAnchor.MiddleRight,
+                                normal = new GUIStyleState
+                                {
+                                    textColor = Color.white
+                                }
+                            });
+                            var ItemText = GUILayout.TextField(newMiningSpeed.ToString(), new GUIStyle
+                            {
+                                fixedWidth = 100,
+                                fixedHeight = 40,
+                                alignment = TextAnchor.MiddleLeft,
+                                margin = new RectOffset(5, 0, 0, 0),
+                                normal = new GUIStyleState
+                                {
+                                    textColor = Color.white
+                                }
+                            });
+                            ItemText = Regex.Replace(ItemText, @"[^0-9.]", "");
+                            try
+                            {
+                                if (ItemText != null && ItemText.Length < 10 && ItemText.Length != 0)
+                                {
+                                    newMiningSpeed = Int32.Parse(ItemText);
+                                }
+                                else
+                                {
+                                    ItemText = newMiningSpeed.ToString();
+                                }
+                            }
+                            catch (Exception) { throw; }
+                        }
+                        // 机甲移动速度
+                        {
+                            GUILayout.Label("机甲移动速度:", new GUIStyle
+                            {
+                                fixedWidth = 80,
+                                fixedHeight = 40,
+                                alignment = TextAnchor.MiddleRight,
+                                normal = new GUIStyleState
+                                {
+                                    textColor = Color.white
+                                }
+                            });
+                            var ItemText = GUILayout.TextField(newWalkSpeed.ToString(), new GUIStyle
+                            {
+                                fixedWidth = 100,
+                                fixedHeight = 40,
+                                alignment = TextAnchor.MiddleLeft,
+                                margin = new RectOffset(5, 0, 0, 0),
+                                normal = new GUIStyleState
+                                {
+                                    textColor = Color.white
+                                }
+                            });
+                            ItemText = Regex.Replace(ItemText, @"[^0-9.]", "");
+                            try
+                            {
+                                if (ItemText != null && ItemText.Length < 10 && ItemText.Length != 0)
+                                {
+                                    newWalkSpeed = Int32.Parse(ItemText);
+                                }
+                                else
+                                {
+                                    ItemText = newWalkSpeed.ToString();
+                                }
+                            }
+                            catch (Exception) { throw; }
+                        }
+                        // 制作速度
+                        {
+                            GUILayout.Label("制作速度:", new GUIStyle
+                            {
+                                fixedWidth = 80,
+                                fixedHeight = 40,
+                                alignment = TextAnchor.MiddleRight,
+                                normal = new GUIStyleState
+                                {
+                                    textColor = Color.white
+                                }
+                            });
+                            var ItemText = GUILayout.TextField(newreplicateSpeed.ToString(), new GUIStyle
+                            {
+                                fixedWidth = 100,
+                                fixedHeight = 40,
+                                alignment = TextAnchor.MiddleLeft,
+                                margin = new RectOffset(5, 0, 0, 0),
+                                normal = new GUIStyleState
+                                {
+                                    textColor = Color.white
+                                }
+                            });
+                            ItemText = Regex.Replace(ItemText, @"[^0-9.]", "");
+                            try
+                            {
+                                if (ItemText != null && ItemText.Length < 10 && ItemText.Length !=0)
+                                {
+                                    newreplicateSpeed = Int32.Parse(ItemText);
+                                }
+                                else
+                                {
+                                    ItemText = newreplicateSpeed.ToString();
+                                }
+                            }
+                            catch (Exception) { throw; }
+                        }
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                GUILayout.EndScrollView();
+            }
+            GUILayout.EndArea();
+        }
+        // 显示窗口
         void DoMyWindow(int winId)
         {
-
             // 渲染头部标题
             this.HeaderTitle(HeaderTitleRect);
 
@@ -379,188 +811,29 @@ namespace ScriptTrainer
             this.HeaderTable(HeaderTableRect);
 
             // 显示物品列表
-            if (this.ShowAddItemwindow)
-            {               
-                this.AddItemTable(AddItemTableRect);               
+            if (this.ShowAddItemWindow)
+            {
+                this.AddItemTable(this.AddItemTableRect);
             }
-
-            
+            // 解锁科技
+            if (this.ShowAddlocktechWindow)
+            {
+                this.AddlocktechTable(this.AddlocktechRect);
+            }
 
             // 其他
             if (this.ShowOtherWindow)
             {
-
+                this.OtherTable(this.OtherRect);
             }
 
+            //GUI.Button(new Rect(10, 20, 100, 20), "一个没什么用的按钮");
+
+            //GUI.DragWindow(new Rect(0, 0, 700, 30));
+            GUI.DragWindow();
         }
 
     }
 
 
-
-
-
-    //[BepInPlugin("aoe.top.ScriptTrainer", "[戴森球计划] 内置修改器 By:小莫", "1.0.0")]
-    //public class ScriptTrainer : BaseUnityPlugin
-    //{
-    //    public bool Trainer = false;
-
-    //    private ConfigEntry<BepInEx.Configuration.KeyboardShortcut> ShowCounter { get; set; }
-
-    //    // 脚本停止时执行 OnDestroy() 函数
-    //    void OnDestroy()
-    //    {
-
-    //        Debug.Log("内置修改器重载！");
-    //    }
-
-    //    // 启动脚本时执行 Awake() 函数
-
-    //    public void Awake()
-    //    {
-
-    //    }
-
-    //    [Obsolete]
-    //    // 注入脚本时会自动调用Start()方法 执行在Awake()方法后面
-    //    public void Start()
-    //    {
-    //        // 初始化UI
-    //        ShowCounter = Config.AddSetting("修改器快捷键", "Key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.F9));
-
-    //        // 注入补丁
-    //        Harmony.CreateAndPatchAll(typeof(ScriptTrainer), null);
-
-    //    }
-
-    //    // 插件将自动循环Update()方法中的内容
-    //    public void Update()
-    //    {
-    //        // 如果用户修改了资源倍数的值
-    //        if (ShowCounter.Value.IsDown())
-    //        {
-    //            if (Trainer)
-    //            {
-    //                Debug.Log("关闭修改器");
-    //            }
-    //            else
-    //            {
-    //                Debug.Log("启动修改器");
-    //            }
-
-    //            UIAdvisorTipMsg();
-    //            //GetList();
-    //            Trainer = !Trainer;
-    //        }
-    //    }
-
-
-    //    public UIMechaWindow mechaWindow;
-    //    [NonSerialized]
-    //    public UIRoot uiRoot;
-    //    [NonSerialized]
-    //    public UIGame uiGame;
-    //    public void UIAdvisorTipMsg()
-    //    {
-    //        //Assert.False(false, "传送带输入接口已满");
-    //        //int ID = 6001;
-    //        //int num = 1000;
-    //        //int res = GameMain.mainPlayer.package.AddItemStacked(ID, num);
-    //        //UIItemup.Up(ID, num);
-
-    //        // 创建并初始化UI
-    //        //optionWindow._RegEvent();
-    //        //GameData gameData = ManualBehaviour.data;
-    //        //var mecha = gameData.mainPlayer;
-
-    //        //UIMeshLine Ow = new UIMeshLine();
-
-    //        //Ow.init(null);
-
-    //        //mechaWindow._Init(GameMain.mainPlayer.mecha);
-    //        //mechaWindow._Create();
-    //        //mechaWindow._Open();
-
-    //        uiGame = uiRoot.uiGame;
-    //        uiGame.OpenMechaWindow();
-    //    }
-
-
-    //    public void GetList()
-    //    {
-    //        List<string> myList = new List<string>();
-    //        ItemProto[] dataArray = LDB.items.dataArray;
-
-    //        for (int j = 0; j < dataArray.Length; j++)
-    //        {
-    //            var item = dataArray[j];
-    //            string[] strArray = new string[] {
-    //                "ID:" + item.ID.ToString(),
-    //                "\tname:" + item.name,
-    //                "\tHeatValue:" + item.HeatValue.ToString(),
-    //                "\tModelCount:" + item.ModelCount.ToString()
-    //            };
-    //            myList.Add(string.Join(",", strArray));
-    //        }
-
-
-    //        string[] names = myList.ToArray(); ;
-
-    //        using (StreamWriter sw = new StreamWriter("names.txt"))
-    //        {
-    //            foreach (string s in names)
-    //            {
-    //                sw.WriteLine(s);
-    //            }
-    //            sw.Close();
-    //        }
-    //        Debug.Log("写入物品数据完成");
-    //    }
-
-
-
-
-    //    [HarmonyPrefix]
-    //    [HarmonyPatch(typeof(Mecha), "SetForNewGame")]
-    //    public static bool Mecha_SetForNewGame_Prefix(Mecha __instance)
-    //    {
-    //        // 这里写入我们自己的内容        
-    //        ModeConfig freeMode = Configs.freeMode;
-    //        __instance.coreEnergyCap = freeMode.mechaCoreEnergyCap;
-    //        __instance.coreEnergy = __instance.coreEnergyCap;
-    //        __instance.corePowerGen = freeMode.mechaCorePowerGen;
-    //        __instance.reactorPowerGen = freeMode.mechaReactorPowerGen;
-    //        __instance.reactorEnergy = 0.0;
-    //        __instance.reactorItemId = 0;
-
-    //        // 返回 true为继续执执行游戏原函数，返回 false为不执行游戏原函数,
-    //        return true;
-    //    }
-
-    //    [HarmonyPostfix]
-    //    [HarmonyPatch(typeof(Mecha), "SetForNewGame")]
-    //    public static void Mecha_SetForNewGame_Postfix(Mecha __instance)
-    //    {
-    //        // 这里写入我们自己的内容            
-    //        Debug.Log("这里的内容需要等待游戏原函数执行完后才会执行");
-
-
-    //        var _droneCount = Traverse.Create(__instance).Field("_droneCount").GetValue<int>();
-
-
-    //        // 调用方法 public void GameTick(long time, float dt)
-    //        FunObj obj = new FunObj();
-    //        obj.time = 0;
-    //        obj.dt = 0;
-    //        var Free = Traverse.Create(__instance).Method("GameTick", obj).GetValue();
-    //    }
-
-    //    struct FunObj
-    //    {
-    //        public long time;
-    //        public float dt;
-    //    }
-
-
-    //}
 }
