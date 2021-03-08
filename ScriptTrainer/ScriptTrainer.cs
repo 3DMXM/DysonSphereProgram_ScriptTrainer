@@ -14,7 +14,7 @@ using System.Text.RegularExpressions;
 
 namespace ScriptTrainer
 {
-    [BepInPlugin("aoe.top.ScriptTrainer", "[戴森球计划] 内置修改器 By:小莫", "1.0.1")]
+    [BepInPlugin("aoe.top.ScriptTrainer", "[戴森球计划] 内置修改器 By:小莫", "1.0.2")]
     public class ScriptTrainer : BaseUnityPlugin
     {
 
@@ -235,7 +235,7 @@ namespace ScriptTrainer
                         ItemText = Regex.Replace(ItemText, @"[^0-9.]", "");
                         try
                         {
-                            if (ItemText != null && ItemText.Length < 10)
+                            if (ItemText != null && ItemText.Length < 10 && ItemText.Length !=0)
                             {
                                 AddItemNum = Int32.Parse(ItemText);
                             }
@@ -792,42 +792,42 @@ namespace ScriptTrainer
                             catch (Exception) { throw; }
                         }
                         // 制作速度
-                        {
-                            GUILayout.Label("制作速度:", new GUIStyle
-                            {
-                                fixedWidth = 80,
-                                fixedHeight = 40,
-                                alignment = TextAnchor.MiddleRight,
-                                normal = new GUIStyleState
-                                {
-                                    textColor = Color.white
-                                }
-                            });
-                            var ItemText = GUILayout.TextField(newreplicateSpeed.ToString(), new GUIStyle
-                            {
-                                fixedWidth = 100,
-                                fixedHeight = 40,
-                                alignment = TextAnchor.MiddleLeft,
-                                margin = new RectOffset(5, 0, 0, 0),
-                                normal = new GUIStyleState
-                                {
-                                    textColor = Color.white
-                                }
-                            });
-                            ItemText = Regex.Replace(ItemText, @"[^0-9.]", "");
-                            try
-                            {
-                                if (ItemText != null && ItemText.Length < 10 && ItemText.Length != 0)
-                                {
-                                    newreplicateSpeed = Int32.Parse(ItemText);
-                                }
-                                else
-                                {
-                                    ItemText = newreplicateSpeed.ToString();
-                                }
-                            }
-                            catch (Exception) { throw; }
-                        }
+                        //{
+                        //    GUILayout.Label("制作速度:", new GUIStyle
+                        //    {
+                        //        fixedWidth = 80,
+                        //        fixedHeight = 40,
+                        //        alignment = TextAnchor.MiddleRight,
+                        //        normal = new GUIStyleState
+                        //        {
+                        //            textColor = Color.white
+                        //        }
+                        //    });
+                        //    var ItemText = GUILayout.TextField(newreplicateSpeed.ToString(), new GUIStyle
+                        //    {
+                        //        fixedWidth = 100,
+                        //        fixedHeight = 40,
+                        //        alignment = TextAnchor.MiddleLeft,
+                        //        margin = new RectOffset(5, 0, 0, 0),
+                        //        normal = new GUIStyleState
+                        //        {
+                        //            textColor = Color.white
+                        //        }
+                        //    });
+                        //    ItemText = Regex.Replace(ItemText, @"[^0-9.]", "");
+                        //    try
+                        //    {
+                        //        if (ItemText != null && ItemText.Length < 10 && ItemText.Length != 0)
+                        //        {
+                        //            newreplicateSpeed = Int32.Parse(ItemText);
+                        //        }
+                        //        else
+                        //        {
+                        //            ItemText = newreplicateSpeed.ToString();
+                        //        }
+                        //    }
+                        //    catch (Exception) { throw; }
+                        //}
                     }
                     GUILayout.EndHorizontal();
 
