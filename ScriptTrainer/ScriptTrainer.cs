@@ -14,7 +14,7 @@ using System.Text.RegularExpressions;
 
 namespace ScriptTrainer
 {
-    [BepInPlugin("aoe.top.ScriptTrainer", "[戴森球计划] 内置修改器 By:小莫", "1.0.2")]
+    [BepInPlugin("aoe.top.ScriptTrainer", "[戴森球计划] 内置修改器 By:小莫", "1.0.3")]
     public class ScriptTrainer : BaseUnityPlugin
     {
 
